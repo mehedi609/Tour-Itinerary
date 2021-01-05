@@ -20,49 +20,63 @@ class ProductAddMoreController extends Controller
       'user_name' => 'required',
       'user_address' => 'required',
       'addmore.*.name' => 'required',
-      'addmore.*.qty' => 'required',
+      'addmore.*.type' => 'required',
+      'addmore.*.person' => 'required',
       'addmore.*.price' => 'required',
     ]);
-
-    $total = 0;
-
-    $order = new Order();
-    $order->name = $request->user_name;
-    $order->address = $request->user_address;
-    $order->total = $total;
-    $order->save();
-
-//    dd($order);
-
 //    dd($request);
 
-    foreach ($request->addmore as $key => $value) {
-      $name = $value['name'];
-      $type = $value['type'];
-      $person = $value['person'];
+    DB::beginTransaction();
 
-      $history = new History();
-      $history->package_name = $name;
-      $history->paying_person = $person;
-      $history->package_type = $type;
+    try {
+      $total = 0;
+      $order = new Order();
+      $order->name = $request->user_name;
+      $order->address = $request->user_address;
+      $order->total = $total;
+      $order->save();
+      foreach ($request->addmore as $key => $value) {
+        $name = $value['name'];
+        $type = $value['type'];
+        $person = $value['person'];
+        $price = (int)$value['price'];
 
-      $order->history()->save($history);
+        $history = new History();
+        $history->package_name = $name;
+        $history->paying_person = $person;
+        $history->package_type = $type;
+        $history->package_price = $price;
 
-      $price = DB::table('packages')
-        ->select('price')
-        ->where('name', $name)
-        ->where('person', $person)
-        ->where('type', $type)
-        ->get();
+        $order->history()->save($history);
 
-//      dd($price[0]->price);
-      $total += $price[0]->price;
+        $total += $price;
+      }
+      $order = Order::find($order->id);
+      $order->total = $total;
+      $order->save();
+
+      DB::commit();
+      return back()->with('success', 'Record Created Successfully.');
+    } catch (\Exception $e) {
+      DB::rollback();
+      return back()->with('warning', 'Something went wrong. Try again!');
     }
+  }
 
-    $order = Order::find($order->id);
-    $order->total = $total;
-    $order->save();
+  public function getPriceOnChange(Request $request): \Illuminate\Http\JsonResponse
+  {
+//    dd($request);
+    $name = $request->package_name;
+    $person = $request->package_person;
+    $type = $request->package_type;
 
-    return back()->with('success', 'Record Created Successfully.');
+    $price = DB::table('packages')
+      ->select('price')
+      ->where('name', $name)
+      ->where('person', $person)
+      ->where('type', $type)
+      ->get();
+
+    return response()->json($price[0]->price);
   }
 }

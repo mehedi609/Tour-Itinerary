@@ -17,3 +17,4 @@ Route::get('/', function () {
 
 Route::get("addmore","ProductAddMoreController@addMore");
 Route::post("addmore","ProductAddMoreController@addMoreProduct")->name('addMoreProduct');
+Route::post("getPriceOnChange","ProductAddMoreController@getPriceOnChange")->name('getPriceOnChange');

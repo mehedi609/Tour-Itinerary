@@ -19,6 +19,7 @@ class CreateHistoriesTable extends Migration
             $table->string('package_name');
             $table->string('paying_person');
             $table->string('package_type');
+            $table->integer('package_price');
             $table->timestamps();
 
             $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
